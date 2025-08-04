@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Registro de Vendas</title>
   <style>
     body {
@@ -12,7 +12,7 @@
     h1 {
       color: #333;
     }
-    input, button {
+    input, button, select {
       padding: 10px;
       margin: 5px 5px 10px 0;
     }
@@ -33,16 +33,23 @@
       font-weight: bold;
       margin-top: 20px;
     }
+    #filtroUsuario {
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <h1>Registro de Vendas</h1>
   <form id="formVenda">
-    <label for="quantidade">Quantidade:</label><br>
-    <input type="number" id="quantidade" required><br>
+    <label for="usuario">Usuário:</label><br />
+    <input type="text" id="usuario" required placeholder="Nome do usuário" /><br />
 
-    <label for="valor">Valor:</label><br>
-    <input type="number" id="valor" step="0.01" required><br>
+    <label for="quantidade">Quantidade:</label><br />
+    <input type="number" id="quantidade" required /><br />
+
+    <label for="valor">Valor:</label><br />
+    <input type="number" id="valor" step="0.01" required /><br />
 
     <button type="submit">Registrar Venda</button>
   </form>
@@ -50,10 +57,18 @@
   <button id="limpar">🗑️ Limpar Vendas</button>
   <button id="exportar">📁 Exportar como CSV</button>
 
+  <div id="filtroUsuario">
+    <label for="selectUsuario">Filtrar por Usuário:</label>
+    <select id="selectUsuario">
+      <option value="todos">Todos</option>
+    </select>
+  </div>
+
   <h2>Vendas de Hoje</h2>
   <table id="tabelaVendas">
     <thead>
       <tr>
+        <th>Usuário</th>
         <th>Quantidade</th>
         <th>Valor</th>
         <th>Data</th>
@@ -70,19 +85,39 @@
     const totaisDisplay = document.getElementById('totais');
     const limparBtn = document.getElementById('limpar');
     const exportarBtn = document.getElementById('exportar');
+    const selectUsuario = document.getElementById('selectUsuario');
 
     let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
+
+    // Atualiza opções do filtro de usuários
+    function atualizarFiltroUsuarios() {
+      const usuarios = [...new Set(vendas.map(v => v.usuario))];
+      // Limpa opções exceto "todos"
+      selectUsuario.innerHTML = '<option value="todos">Todos</option>';
+      usuarios.forEach(u => {
+        const option = document.createElement('option');
+        option.value = u;
+        option.textContent = u;
+        selectUsuario.appendChild(option);
+      });
+    }
 
     function atualizarTabela() {
       tabela.innerHTML = '';
       let totalValor = 0;
       let totalQuantidade = 0;
 
-      vendas.forEach(venda => {
+      const filtro = selectUsuario.value;
+
+      // Filtra vendas pelo usuário selecionado, ou pega todas se for 'todos'
+      const vendasFiltradas = filtro === 'todos' ? vendas : vendas.filter(v => v.usuario === filtro);
+
+      vendasFiltradas.forEach(venda => {
         const linha = tabela.insertRow();
-        linha.insertCell(0).textContent = venda.quantidade;
-        linha.insertCell(1).textContent = `R$ ${venda.valor.toFixed(2)}`;
-        linha.insertCell(2).textContent = venda.data;
+        linha.insertCell(0).textContent = venda.usuario;
+        linha.insertCell(1).textContent = venda.quantidade;
+        linha.insertCell(2).textContent = `R$ ${venda.valor.toFixed(2)}`;
+        linha.insertCell(3).textContent = venda.data;
         totalValor += venda.valor;
         totalQuantidade += venda.quantidade;
       });
@@ -93,13 +128,23 @@
     form.addEventListener('submit', function(event) {
       event.preventDefault();
 
+      const usuario = document.getElementById('usuario').value.trim();
       const quantidade = parseInt(document.getElementById('quantidade').value);
       const valor = parseFloat(document.getElementById('valor').value);
       const data = new Date().toLocaleDateString('pt-BR');
 
-      const novaVenda = { quantidade, valor, data };
+      if (!usuario) {
+        alert('Por favor, preencha o nome do usuário.');
+        return;
+      }
+
+      const novaVenda = { usuario, quantidade, valor, data };
       vendas.push(novaVenda);
       localStorage.setItem('vendas', JSON.stringify(vendas));
+
+      atualizarFiltroUsuarios();
+      // Reseta o filtro para "todos" após adicionar
+      selectUsuario.value = 'todos';
 
       atualizarTabela();
       form.reset();
@@ -109,19 +154,23 @@
       if (confirm("Tem certeza que deseja apagar todas as vendas?")) {
         vendas = [];
         localStorage.removeItem('vendas');
+        atualizarFiltroUsuarios();
         atualizarTabela();
       }
     });
 
     exportarBtn.addEventListener('click', () => {
-      if (vendas.length === 0) {
+      const filtro = selectUsuario.value;
+      const vendasFiltradas = filtro === 'todos' ? vendas : vendas.filter(v => v.usuario === filtro);
+
+      if (vendasFiltradas.length === 0) {
         alert("Nenhuma venda para exportar.");
         return;
       }
 
-      let csv = "Quantidade,Valor,Data\n";
-      vendas.forEach(venda => {
-        csv += `${venda.quantidade},${venda.valor.toFixed(2)},${venda.data}\n`;
+      let csv = "Usuário,Quantidade,Valor,Data\n";
+      vendasFiltradas.forEach(venda => {
+        csv += `${venda.usuario},${venda.quantidade},${venda.valor.toFixed(2)},${venda.data}\n`;
       });
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -135,6 +184,10 @@
       document.body.removeChild(link);
     });
 
+    selectUsuario.addEventListener('change', atualizarTabela);
+
+    // Inicialização
+    atualizarFiltroUsuarios();
     atualizarTabela();
   </script>
 </body>
