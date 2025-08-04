@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Registro de Vendas</title>
   <style>
     body {
@@ -12,181 +13,117 @@
     h1 {
       color: #333;
     }
-    input, button, select {
+    input, button {
       padding: 10px;
-      margin: 5px 5px 10px 0;
+      margin: 5px 0;
+      width: 100%;
+      max-width: 300px;
     }
     table {
-      width: 100%;
-      border-collapse: collapse;
       margin-top: 20px;
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
     }
     th, td {
+      padding: 8px;
       border: 1px solid #ccc;
-      padding: 10px;
       text-align: left;
     }
-    th {
-      background-color: #eee;
-    }
-    #totais {
+    .total {
+      margin-top: 20px;
       font-weight: bold;
-      margin-top: 20px;
-    }
-    #filtroUsuario {
-      margin-top: 20px;
-      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
   <h1>Registro de Vendas</h1>
-  <form id="formVenda">
-    <label for="usuario">Usuário:</label><br />
-    <input type="text" id="usuario" required placeholder="Nome do usuário" /><br />
 
-    <label for="quantidade">Quantidade:</label><br />
-    <input type="number" id="quantidade" required /><br />
+  <input type="text" id="produto" placeholder="Produto" />
+  <input type="number" id="quantidade" placeholder="Quantidade" />
+  <input type="number" id="valor" placeholder="Valor Total (R$)" step="0.01" />
+  <button onclick="registrarVenda()">Registrar Venda</button>
 
-    <label for="valor">Valor:</label><br />
-    <input type="number" id="valor" step="0.01" required /><br />
+  <div class="total" id="totalInfo">Carregando total...</div>
 
-    <button type="submit">Registrar Venda</button>
-  </form>
-
-  <button id="limpar"> Limpar Vendas</button>
-  <button id="exportar"> Exportar como CSV</button>
-
-  <div id="filtroUsuario">
-    <label for="selectUsuario">Filtrar por Usuário:</label>
-    <select id="selectUsuario">
-      <option value="todos">Todos</option>
-    </select>
-  </div>
-
-  <h2>Vendas de Hoje</h2>
-  <table id="tabelaVendas">
+  <table>
     <thead>
       <tr>
-        <th>Usuário</th>
-        <th>Quantidade</th>
+        <th>Produto</th>
+        <th>Qtd</th>
         <th>Valor</th>
-        <th>Data</th>
       </tr>
     </thead>
-    <tbody></tbody>
+    <tbody id="tabelaVendas"></tbody>
   </table>
 
-  <p id="totais">Total arrecadado: R$ 0,00 | Quantidade total: 0</p>
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-  <script>
-    const form = document.getElementById('formVenda');
-    const tabela = document.getElementById('tabelaVendas').getElementsByTagName('tbody')[0];
-    const totaisDisplay = document.getElementById('totais');
-    const limparBtn = document.getElementById('limpar');
-    const exportarBtn = document.getElementById('exportar');
-    const selectUsuario = document.getElementById('selectUsuario');
+    const firebaseConfig = {
+      apiKey: "AIzaSyB3-GZidpHoYxdrUyQN5cZyKm85bP6kzjw",
+      authDomain: "hydra-d3516.firebaseapp.com",
+      databaseURL: "https://hydra-d3516-default-rtdb.firebaseio.com",
+      projectId: "hydra-d3516",
+      storageBucket: "hydra-d3516.firebasestorage.app",
+      messagingSenderId: "684571117442",
+      appId: "1:684571117442:web:274aefa1dd8b2fdf32b19b",
+      measurementId: "G-GHVYJX05ZW"
+    };
 
-    let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const vendasRef = ref(db, "vendas");
 
-    
-    function atualizarFiltroUsuarios() {
-      const usuarios = [...new Set(vendas.map(v => v.usuario))];
-    
-      selectUsuario.innerHTML = '<option value="todos">Todos</option>';
-      usuarios.forEach(u => {
-        const option = document.createElement('option');
-        option.value = u;
-        option.textContent = u;
-        selectUsuario.appendChild(option);
+    function registrarVenda() {
+      const produto = document.getElementById("produto").value.trim();
+      const quantidade = parseInt(document.getElementById("quantidade").value);
+      const valor = parseFloat(document.getElementById("valor").value);
+
+      if (!produto || isNaN(quantidade) || isNaN(valor)) {
+        alert("Preencha todos os campos corretamente.");
+        return;
+      }
+
+      push(vendasRef, {
+        produto,
+        quantidade,
+        valor
       });
+
+      // Limpar campos
+      document.getElementById("produto").value = "";
+      document.getElementById("quantidade").value = "";
+      document.getElementById("valor").value = "";
     }
 
-    function atualizarTabela() {
-      tabela.innerHTML = '';
+    onValue(vendasRef, (snapshot) => {
+      const vendas = snapshot.val();
+      const tabela = document.getElementById("tabelaVendas");
+      tabela.innerHTML = "";
+
+      let totalQtd = 0;
       let totalValor = 0;
-      let totalQuantidade = 0;
 
-      const filtro = selectUsuario.value;
+      for (let id in vendas) {
+        const venda = vendas[id];
+        const linha = document.createElement("tr");
+        linha.innerHTML = `
+          <td>${venda.produto}</td>
+          <td>${venda.quantidade}</td>
+          <td>R$ ${venda.valor.toFixed(2)}</td>
+        `;
+        tabela.appendChild(linha);
 
-      
-      const vendasFiltradas = filtro === 'todos' ? vendas : vendas.filter(v => v.usuario === filtro);
-
-      vendasFiltradas.forEach(venda => {
-        const linha = tabela.insertRow();
-        linha.insertCell(0).textContent = venda.usuario;
-        linha.insertCell(1).textContent = venda.quantidade;
-        linha.insertCell(2).textContent = `R$ ${venda.valor.toFixed(2)}`;
-        linha.insertCell(3).textContent = venda.data;
+        totalQtd += venda.quantidade;
         totalValor += venda.valor;
-        totalQuantidade += venda.quantidade;
-      });
-
-      totaisDisplay.textContent = `Total arrecadado: R$ ${totalValor.toFixed(2)} | Quantidade total: ${totalQuantidade}`;
-    }
-
-    form.addEventListener('submit', function(event) {
-      event.preventDefault();
-
-      const usuario = document.getElementById('usuario').value.trim();
-      const quantidade = parseInt(document.getElementById('quantidade').value);
-      const valor = parseFloat(document.getElementById('valor').value);
-      const data = new Date().toLocaleDateString('pt-BR');
-
-      if (!usuario) {
-        alert('Por favor, preencha o nome do usuário.');
-        return;
       }
 
-      const novaVenda = { usuario, quantidade, valor, data };
-      vendas.push(novaVenda);
-      localStorage.setItem('vendas', JSON.stringify(vendas));
-
-      atualizarFiltroUsuarios();
-      
-      selectUsuario.value = 'todos';
-
-      atualizarTabela();
-      form.reset();
+      document.getElementById("totalInfo").innerText =
+        `Total vendido: ${totalQtd} itens — R$ ${totalValor.toFixed(2)}`;
     });
-
-    limparBtn.addEventListener('click', () => {
-      if (confirm("Tem certeza que deseja apagar todas as vendas?")) {
-        vendas = [];
-        localStorage.removeItem('vendas');
-        atualizarFiltroUsuarios();
-        atualizarTabela();
-      }
-    });
-
-    exportarBtn.addEventListener('click', () => {
-      const filtro = selectUsuario.value;
-      const vendasFiltradas = filtro === 'todos' ? vendas : vendas.filter(v => v.usuario === filtro);
-
-      if (vendasFiltradas.length === 0) {
-        alert("Nenhuma venda para exportar.");
-        return;
-      }
-
-      let csv = "Usuário,Quantidade,Valor,Data\n";
-      vendasFiltradas.forEach(venda => {
-        csv += `${venda.usuario},${venda.quantidade},${venda.valor.toFixed(2)},${venda.data}\n`;
-      });
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", "vendas.csv");
-      link.style.display = "none";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
-
-    selectUsuario.addEventListener('change', atualizarTabela);
-    atualizarFiltroUsuarios();
-    atualizarTabela();
   </script>
 </body>
 </html>
