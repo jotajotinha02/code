@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Registro de Vendas com Filtro por Data</title>
+  <title>Registro de Vendas</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,21 +14,46 @@
       margin: 5px 0;
       width: 100%;
       max-width: 300px;
+      box-sizing: border-box; 
     }
     table {
       margin-top: 20px;
       border-collapse: collapse;
       width: 100%;
       max-width: 600px;
+      background-color: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     th, td {
-      padding: 8px;
-      border: 1px solid #ccc;
+      padding: 12px;
+      border: 1px solid #eee;
       text-align: left;
+    }
+    th {
+      background-color: #f8f8f8;
+      font-weight: bold;
     }
     .total {
       margin-top: 20px;
+      padding: 10px;
       font-weight: bold;
+      background-color: #e0f2f7; 
+      border-left: 5px solid #2196f3; 
+      color: #333;
+      max-width: 590px; 
+    }
+    h1, h3 {
+      color: #333;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
     }
   </style>
 </head>
@@ -57,11 +82,13 @@
     <tbody id="tabelaVendas"></tbody>
   </table>
 
-  <!-- Firebase SDK -->
+
   <script type="module">
+
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+ 
     const firebaseConfig = {
       apiKey: "AIzaSyB3-GZidpHoYxdrUyQN5cZyKm85bP6kzjw",
       authDomain: "hydra-d3516.firebaseapp.com",
@@ -73,29 +100,103 @@
       measurementId: "G-GHVYJX05ZW"
     };
 
+
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const vendasRef = ref(db, "vendas");
+    const vendasRef = ref(db, "vendas"); 
+    
+    const usuarioInput = document.getElementById("usuario");
+    const quantidadeInput = document.getElementById("quantidade");
+    const valorInput = document.getElementById("valor");
+    const tabelaVendasBody = document.getElementById("tabelaVendas");
+    const totalInfoDiv = document.getElementById("totalInfo");
+    const filtroDataInput = document.getElementById("filtroData");
 
-    // Registrar venda com data
+    let latestSnapshot = null; 
+
+   
+    function renderTableAndTotal(snapshot) {
+      latestSnapshot = snapshot; 
+
+      const vendas = [];
+      let totalVendas = 0;
+      const selectedDate = filtroDataInput.value; 
+
+     
+      tabelaVendasBody.innerHTML = "";
+
+     
+      snapshot.forEach((childSnapshot) => {
+        const venda = childSnapshot.val(); 
+        if (!selectedDate || (venda.data && venda.data === selectedDate)) {
+          vendas.push(venda);
+          totalVendas += venda.valor || 0; 
+        }
+      });
+
+   
+      if (vendas.length === 0) {
+       
+        const row = tabelaVendasBody.insertRow();
+        const cell = row.insertCell();
+        cell.colSpan = 4; 
+        cell.textContent = selectedDate ? `Nenhuma venda encontrada para a data: ${selectedDate}` : "Nenhuma venda registrada ainda.";
+        cell.style.textAlign = 'center';
+        cell.style.fontStyle = 'italic';
+      } else {
+        vendas.forEach(venda => {
+          const row = tabelaVendasBody.insertRow();
+          row.insertCell().textContent = venda.usuario;
+          row.insertCell().textContent = venda.quantidade;
+          row.insertCell().textContent = `R$ ${(venda.valor || 0).toFixed(2)}`;
+          row.insertCell().textContent = venda.data;
+        });
+      }
+
+      
+      totalInfoDiv.textContent = `Total de vendas filtradas: R$ ${totalVendas.toFixed(2)}`;
+    }
+
+   
+    onValue(vendasRef, renderTableAndTotal);
+
+ 
     function registrarVenda() {
-      const produto = document.getElementById("usuario").value.trim();
-      const quantidade = parseInt(document.getElementById("quantidade").value);
-      const valor = parseFloat(document.getElementById("valor").value);
+      const usuario = usuarioInput.value.trim(); 
+      const quantidade = parseInt(quantidadeInput.value); 
+      const valor = parseFloat(valorInput.value); 
 
+    
       if (!usuario || isNaN(quantidade) || isNaN(valor)) {
-        alert("Preencha todos os campos corretamente.");
+        alert("Por favor, preencha todos os campos corretamente.");
         return;
       }
 
-      const hoje = new Date().toISOString().split("T")[0]; // formato: yyyy-mm-dd
+     
+      const hoje = new Date().toISOString().split("T")[0];
 
+      
       push(vendasRef, {
-        usuario,
-        quantidade,
-        valor,
-        data: hoje
+        usuario: usuario, 
+        quantidade: quantidade, 
+        valor: valor, 
+        data: hoje 
       });
 
-      document.getElementById("usuario").value = "";
-      document.getElementById("quantidade").value = "";
+ 
+      usuarioInput.value = "";
+      quantidadeInput.value = "";
+      valorInput.value = "";
+    }
+
+    function atualizarTabela() {
+      if (latestSnapshot) {
+        renderTableAndTotal(latestSnapshot);
+      }
+    }
+
+    window.registrarVenda = registrarVenda;
+    window.atualizarTabela = atualizarTabela;
+  </script>
+</body>
+</html>
