@@ -35,7 +35,7 @@
 <body>
   <h1>Registro de Vendas</h1>
 
-  <input type="text" id="produto" placeholder="Produto" />
+  <input type="text" id="usuario" placeholder="Usuário" />
   <input type="number" id="quantidade" placeholder="Quantidade" />
   <input type="number" id="valor" placeholder="Valor Total (R$)" step="0.01" />
   <button onclick="registrarVenda()">Registrar Venda</button>
@@ -48,7 +48,7 @@
   <table>
     <thead>
       <tr>
-        <th>Produto</th>
+        <th>Usuário</th>
         <th>Qtd</th>
         <th>Valor</th>
         <th>Data</th>
@@ -79,11 +79,11 @@
 
     // Registrar venda com data
     function registrarVenda() {
-      const produto = document.getElementById("produto").value.trim();
+      const produto = document.getElementById("usuario").value.trim();
       const quantidade = parseInt(document.getElementById("quantidade").value);
       const valor = parseFloat(document.getElementById("valor").value);
 
-      if (!produto || isNaN(quantidade) || isNaN(valor)) {
+      if (!usuario || isNaN(quantidade) || isNaN(valor)) {
         alert("Preencha todos os campos corretamente.");
         return;
       }
@@ -91,11 +91,11 @@
       const hoje = new Date().toISOString().split("T")[0]; // formato: yyyy-mm-dd
 
       push(vendasRef, {
-        produto,
+        usuario,
         quantidade,
         valor,
         data: hoje
       });
 
-      document.getElementById("produto").value = "";
+      document.getElementById("usuario").value = "";
       document.getElementById("quantidade").value = "";
