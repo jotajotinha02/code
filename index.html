@@ -29,17 +29,21 @@
     th {
       background-color: #eee;
     }
+    #total {
+      font-weight: bold;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
   <h1>Registro de Vendas</h1>
   <form id="formVenda">
-    <label for="produto">Quantidade:</label><br>
-    <input type="text" id="quantidade" required><br>
-    
-    <label for="quantidade">Valor:</label><br>
-    <input type="number" id="valor" required><br>
-    
+    <label for="quantidade">Quantidade:</label><br>
+    <input type="number" id="quantidade" required><br>
+
+    <label for="valor">Valor:</label><br>
+    <input type="number" id="valor" step="0.01" required><br>
+
     <button type="submit">Registrar Venda</button>
   </form>
 
@@ -55,24 +59,46 @@
     <tbody></tbody>
   </table>
 
+  <p id="total">Total arrecadado: R$ 0,00</p>
+
   <script>
     const form = document.getElementById('formVenda');
     const tabela = document.getElementById('tabelaVendas').getElementsByTagName('tbody')[0];
+    const totalDisplay = document.getElementById('total');
+
+    let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
+
+    function atualizarTabela() {
+      tabela.innerHTML = '';
+      let total = 0;
+
+      vendas.forEach(venda => {
+        const linha = tabela.insertRow();
+        linha.insertCell(0).textContent = venda.quantidade;
+        linha.insertCell(1).textContent = `R$ ${venda.valor.toFixed(2)}`;
+        linha.insertCell(2).textContent = venda.data;
+        total += venda.valor;
+      });
+
+      totalDisplay.textContent = `Total arrecadado: R$ ${total.toFixed(2)}`;
+    }
 
     form.addEventListener('submit', function(event) {
       event.preventDefault();
 
-      const produto = document.getElementById('quantidade').value;
-      const quantidade = document.getElementById('valor').value;
+      const quantidade = parseInt(document.getElementById('quantidade').value);
+      const valor = parseFloat(document.getElementById('valor').value);
       const data = new Date().toLocaleDateString('pt-BR');
 
-      const linha = tabela.insertRow();
-      linha.insertCell(0).textContent = quantidade;
-      linha.insertCell(1).textContent = valor;
-      linha.insertCell(2).textContent = data;
+      const novaVenda = { quantidade, valor, data };
+      vendas.push(novaVenda);
+      localStorage.setItem('vendas', JSON.stringify(vendas));
 
+      atualizarTabela();
       form.reset();
     });
+
+    atualizarTabela();
   </script>
 </body>
 </html>
