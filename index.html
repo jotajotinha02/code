@@ -14,7 +14,7 @@
     }
     input, button {
       padding: 10px;
-      margin: 5px 0;
+      margin: 5px 5px 10px 0;
     }
     table {
       width: 100%;
@@ -29,7 +29,7 @@
     th {
       background-color: #eee;
     }
-    #total {
+    #totais {
       font-weight: bold;
       margin-top: 20px;
     }
@@ -47,6 +47,9 @@
     <button type="submit">Registrar Venda</button>
   </form>
 
+  <button id="limpar">🗑️ Limpar Vendas</button>
+  <button id="exportar">📁 Exportar como CSV</button>
+
   <h2>Vendas de Hoje</h2>
   <table id="tabelaVendas">
     <thead>
@@ -59,28 +62,32 @@
     <tbody></tbody>
   </table>
 
-  <p id="total">Total arrecadado: R$ 0,00</p>
+  <p id="totais">Total arrecadado: R$ 0,00 | Quantidade total: 0</p>
 
   <script>
     const form = document.getElementById('formVenda');
     const tabela = document.getElementById('tabelaVendas').getElementsByTagName('tbody')[0];
-    const totalDisplay = document.getElementById('total');
+    const totaisDisplay = document.getElementById('totais');
+    const limparBtn = document.getElementById('limpar');
+    const exportarBtn = document.getElementById('exportar');
 
     let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
 
     function atualizarTabela() {
       tabela.innerHTML = '';
-      let total = 0;
+      let totalValor = 0;
+      let totalQuantidade = 0;
 
       vendas.forEach(venda => {
         const linha = tabela.insertRow();
         linha.insertCell(0).textContent = venda.quantidade;
         linha.insertCell(1).textContent = `R$ ${venda.valor.toFixed(2)}`;
         linha.insertCell(2).textContent = venda.data;
-        total += venda.valor;
+        totalValor += venda.valor;
+        totalQuantidade += venda.quantidade;
       });
 
-      totalDisplay.textContent = `Total arrecadado: R$ ${total.toFixed(2)}`;
+      totaisDisplay.textContent = `Total arrecadado: R$ ${totalValor.toFixed(2)} | Quantidade total: ${totalQuantidade}`;
     }
 
     form.addEventListener('submit', function(event) {
@@ -96,6 +103,36 @@
 
       atualizarTabela();
       form.reset();
+    });
+
+    limparBtn.addEventListener('click', () => {
+      if (confirm("Tem certeza que deseja apagar todas as vendas?")) {
+        vendas = [];
+        localStorage.removeItem('vendas');
+        atualizarTabela();
+      }
+    });
+
+    exportarBtn.addEventListener('click', () => {
+      if (vendas.length === 0) {
+        alert("Nenhuma venda para exportar.");
+        return;
+      }
+
+      let csv = "Quantidade,Valor,Data\n";
+      vendas.forEach(venda => {
+        csv += `${venda.quantidade},${venda.valor.toFixed(2)},${venda.data}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "vendas.csv");
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     });
 
     atualizarTabela();
