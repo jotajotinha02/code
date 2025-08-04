@@ -34,11 +34,11 @@
 <body>
   <h1>Registro de Vendas</h1>
   <form id="formVenda">
-    <label for="produto">Produto:</label><br>
-    <input type="text" id="produto" required><br>
+    <label for="produto">Quantidade:</label><br>
+    <input type="text" id="quantidade" required><br>
     
-    <label for="quantidade">Quantidade Vendida:</label><br>
-    <input type="number" id="quantidade" required><br>
+    <label for="quantidade">Valor:</label><br>
+    <input type="number" id="valor" required><br>
     
     <button type="submit">Registrar Venda</button>
   </form>
@@ -47,8 +47,8 @@
   <table id="tabelaVendas">
     <thead>
       <tr>
-        <th>Produto</th>
         <th>Quantidade</th>
+        <th>Valor</th>
         <th>Data</th>
       </tr>
     </thead>
@@ -62,13 +62,13 @@
     form.addEventListener('submit', function(event) {
       event.preventDefault();
 
-      const produto = document.getElementById('produto').value;
-      const quantidade = document.getElementById('quantidade').value;
+      const produto = document.getElementById('quantidade').value;
+      const quantidade = document.getElementById('valor').value;
       const data = new Date().toLocaleDateString('pt-BR');
 
       const linha = tabela.insertRow();
-      linha.insertCell(0).textContent = produto;
-      linha.insertCell(1).textContent = quantidade;
+      linha.insertCell(0).textContent = quantidade;
+      linha.insertCell(1).textContent = valor;
       linha.insertCell(2).textContent = data;
 
       form.reset();
