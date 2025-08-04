@@ -89,10 +89,10 @@
 
     let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
 
-    // Atualiza opções do filtro de usuários
+    
     function atualizarFiltroUsuarios() {
       const usuarios = [...new Set(vendas.map(v => v.usuario))];
-      // Limpa opções exceto "todos"
+    
       selectUsuario.innerHTML = '<option value="todos">Todos</option>';
       usuarios.forEach(u => {
         const option = document.createElement('option');
@@ -109,7 +109,7 @@
 
       const filtro = selectUsuario.value;
 
-      // Filtra vendas pelo usuário selecionado, ou pega todas se for 'todos'
+      
       const vendasFiltradas = filtro === 'todos' ? vendas : vendas.filter(v => v.usuario === filtro);
 
       vendasFiltradas.forEach(venda => {
